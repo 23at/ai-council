@@ -3,7 +3,7 @@ A realistic AI-powered group chat where three student personas — Maya, Leo, an
 
 How it works
 
-When you send a message, a coordinator model first decides which agents would realistically reply (sometimes just one, sometimes two, rarely all three). The agents then respond sequentially so each one can "read" what the others said. Every agent has full conversation history for context. Total of 4 different AI model ws used all free through OpenRouter.
+When you send a message, a coordinator model first decides which agents would realistically reply (sometimes just one, sometimes two, rarely all three). The agents then respond sequentially so each one can "read" what the others said. Every agent has full conversation history for context. You can switch up the AI models as well.
 
 
 I orginally planned on creating a debate system where different AI models answers the same question and critiques the others answer, and later came with this idea.
