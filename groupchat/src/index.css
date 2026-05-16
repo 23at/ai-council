@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f4;
+  --bg-tertiary: #eeecea;
+  --text-primary: #1a1a18;
+  --text-secondary: #6b6b67;
+  --text-tertiary: #a3a39e;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.14);
+  --maya-bg: #EEEDFE; --maya-text: #3C3489; --maya-accent: #7F77DD;
+  --leo-bg: #E1F5EE;  --leo-text: #0F6E56;  --leo-accent: #1D9E75;
+  --sam-bg: #FAECE7;  --sam-text: #993C1D;  --sam-accent: #D85A30;
+  --user-bubble: #3C3489;
+  --radius-sm: 8px; --radius-lg: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1c1c1a;
+    --bg-secondary: #252523;
+    --bg-tertiary: #2e2e2b;
+    --text-primary: #f0efe9;
+    --text-secondary: #9a9a94;
+    --text-tertiary: #5c5c58;
+    --border: rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.12);
+    --maya-bg: #26215C; --maya-text: #AFA9EC;
+    --leo-bg: #04342C;  --leo-text: #5DCAA5;
+    --sam-bg: #4A1B0C;  --sam-text: #F0997B;
+  }
+}
+
+html, body { height: 100%; background: var(--bg-tertiary); font-family: 'DM Sans', sans-serif; }
+#root { height: 100%; }
+
+.app-wrapper {
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; padding: 20px;
+}
+
+.chat-window {
+  width: 100%; max-width: 480px; height: 680px;
+  background: var(--bg-primary);
+  border-radius: 22px;
+  border: 0.5px solid var(--border-strong);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+@keyframes pulse {
+  0%, 60%, 100% { transform: scale(1); opacity: 0.45; }
+  30% { transform: scale(1.4); opacity: 1; }
+}

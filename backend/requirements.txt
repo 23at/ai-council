@@ -1,0 +1,9 @@
+# backend/requirements.txt
+# Install all of these with: pip install -r requirements.txt
+
+fastapi==0.115.0        # the web framework
+uvicorn==0.30.6         # the server that runs FastAPI (like Node for Python)
+pydantic==2.9.0         # data validation (used by FastAPI automatically)
+anthropic==0.34.0       # Anthropic Python SDK — we'll use this in the next step
+python-dotenv==1.0.1    # loads .env files so we can keep our API key out of code
+openai
