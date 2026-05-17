@@ -11,7 +11,12 @@ from models import ChatSession
 client = AsyncOpenAI(
     api_key=os.getenv("API_KEY"),
     base_url="https://openrouter.ai/api/v1",
+    default_headers={
+        "HTTP-Referer":"http://127.0.0.1:8000",  
+        "X-Title": "Council App"
+    }
 )
+
 
 semaphore = asyncio.Semaphore(2)
 
@@ -19,43 +24,65 @@ semaphore = asyncio.Semaphore(2)
 
 AGENTS = {
     "Maya": {
-        "model": "openai/gpt-4o-mini",
+        "model":"openai/gpt-oss-120b:free",
         "persona": """You are Maya in a student group chat. Sarcastic, emotionally intelligent, socially observant.
 You speak casually like texting. You tease people sometimes but are insightful.
 Reply in 1-3 short sentences. No asterisks, no markdown. Just raw chat text."""
     },
     "Leo": {
-        "model": "openai/gpt-4o-mini",
+         "model":"deepseek/deepseek-v4-flash:free",
         "persona": """You are Leo in a student group chat. Optimistic and future-oriented.
 You text casually and enthusiastically. Focus on opportunities and creative possibilities.
 Reply in 1-3 short sentences. No asterisks, no markdown. Just raw chat text."""
     },
     "Sam": {
-        "model": "openai/gpt-4o-mini",
+        "model":"baidu/cobuddy:free",
         "persona": """You are Sam in a student group chat. Nihilistic yet hopeful, grounded in real student experience.
 Dry deadpan humor. Sparse texting style, sometimes a one-liner.
 Reply in 1-3 short sentences. No asterisks, no markdown. Just raw chat text."""
     },
 }
 
-COORDINATOR_MODEL = "openai/gpt-4o-mini"
+COORDINATOR_MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+
 
 # ── Core model call ───────────────────────────────────────────────────────────
-
 async def call_model(prompt: str, model: str, system: str = "") -> str:
     async with semaphore:
         try:
             messages = []
+
             if system:
-                messages.append({"role": "system", "content": system})
-            messages.append({"role": "user", "content": prompt})
+                messages.append({
+                    "role": "system",
+                    "content": system
+                })
+
+            messages.append({
+                "role": "user",
+                "content": prompt
+            })
 
             response = await client.chat.completions.create(
                 model=model,
                 messages=messages,
                 max_tokens=300,
             )
-            return response.choices[0].message.content.strip()
+
+            content = response.choices[0].message.content
+
+            if content is None:
+                print(f"Empty response from model: {model}")
+                return ""
+
+            if (
+                not response.choices
+                or not response.choices[0].message
+            ):
+                return ""
+            
+            return content.strip()
+
         except Exception as e:
             print("Model error:", e)
             return f"Error: {str(e)}"
