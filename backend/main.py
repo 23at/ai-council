@@ -40,12 +40,13 @@ sessions: dict[str, ChatSession] = {}
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
+    agent_names: dict[str, str] = {}
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
     session = ChatSession()
     session.history = req.history   # hydrate from frontend state
-    return await run_chat_turn(req.message, session)
+    return await run_chat_turn(req.message, session, req.agent_names)
 
 @app.delete("/chat/{session_id}")
 async def clear_session(session_id: str):

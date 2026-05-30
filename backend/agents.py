@@ -30,20 +30,38 @@ You speak casually like texting. You tease people sometimes but are insightful.
 Reply in 1-3 short sentences. No asterisks, no markdown. Just raw chat text."""
     },
     "Leo": {
-         "model":"deepseek/deepseek-v4-flash:free",
+         "model":"cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
         "persona": """You are Leo in a student group chat. Optimistic and future-oriented.
 You text casually and enthusiastically. Focus on opportunities and creative possibilities.
 Reply in 1-3 short sentences. No asterisks, no markdown. Just raw chat text."""
     },
     "Sam": {
-        "model":"baidu/cobuddy:free",
+        "model":"qwen/qwen3-next-80b-a3b-instruct:free",
         "persona": """You are Sam in a student group chat. Nihilistic yet hopeful, grounded in real student experience.
 Dry deadpan humor. Sparse texting style, sometimes a one-liner.
 Reply in 1-3 short sentences. No asterisks, no markdown. Just raw chat text."""
     },
 }
 
-COORDINATOR_MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+COORDINATOR_MODEL = "openrouter/free"
+
+
+def get_agent_display_names(agent_names: dict[str, str] | None = None) -> dict[str, str]:
+    agent_names = agent_names or {}
+    display_names = {}
+
+    for name in AGENTS:
+        raw = str(agent_names.get(name, "")).strip()
+        display_names[name] = raw[:24] if raw else name
+
+    return display_names
+
+
+def agent_roster(display_names: dict[str, str]) -> str:
+    return ", ".join(
+        f"{canonical} (display name: {display_names[canonical]})"
+        for canonical in AGENTS
+    )
 
 
 # ── Core model call ───────────────────────────────────────────────────────────
@@ -89,10 +107,21 @@ async def call_model(prompt: str, model: str, system: str = "") -> str:
 
 # ── Chat pipeline ─────────────────────────────────────────────────────────────
 
-async def decide_who_responds(message: str, session: ChatSession) -> list[str]:
+async def decide_who_responds(
+    message: str,
+    session: ChatSession,
+    display_names: dict[str, str] | None = None,
+) -> list[str]:
     history = session.format_history()
+    display_names = display_names or get_agent_display_names()
+    roster = agent_roster(display_names)
 
-    prompt = f"""Group chat with Maya (sarcastic, witty), Leo (optimistic), Sam (nihilistic but hopeful).
+    prompt = f"""Group chat with these agents: {roster}.
+
+Canonical personalities:
+Maya is sarcastic, witty, emotionally intelligent, and socially observant.
+Leo is optimistic, future-oriented, and excited about ideas.
+Sam is nihilistic but hopeful, dry, and grounded.
 
 Recent chat:
 {history or '(just started)'}
@@ -108,7 +137,7 @@ Reply with ONLY a JSON array of names. Example: ["Maya"] or ["Leo","Sam"]"""
         raw = await call_model(
             prompt,
             COORDINATOR_MODEL,
-            system='Reply ONLY with a valid JSON array of names from ["Maya","Leo","Sam"]. No explanation.'
+            system='Reply ONLY with a valid JSON array of canonical names from ["Maya","Leo","Sam"]. No explanation.'
         )
         match = re.search(r'\[.*?\]', raw, re.DOTALL)
         if match:
@@ -120,29 +149,48 @@ Reply with ONLY a JSON array of names. Example: ["Maya"] or ["Leo","Sam"]"""
     return [random.choice(list(AGENTS.keys()))]
 
 
-async def get_agent_reply(name: str, message: str, session: ChatSession) -> str:
+async def get_agent_reply(
+    name: str,
+    message: str,
+    session: ChatSession,
+    display_names: dict[str, str] | None = None,
+) -> str:
     history = session.format_history()
+    display_names = display_names or get_agent_display_names()
+    display_name = display_names[name]
 
     prompt = f"""Recent group chat:
 {history}
 
 User just said: {message}
 
-Reply naturally as {name}."""
+Reply naturally as {display_name}."""
 
-    return await call_model(prompt, AGENTS[name]["model"], system=AGENTS[name]["persona"])
+    system = (
+        f"{AGENTS[name]['persona']}\n"
+        f"Your current display name in this chat is {display_name}. "
+        f"Use {display_name} as your name, not {name}, unless those are the same."
+    )
+
+    return await call_model(prompt, AGENTS[name]["model"], system=system)
 
 
-async def run_chat_turn(message: str, session: ChatSession) -> dict:
+async def run_chat_turn(
+    message: str,
+    session: ChatSession,
+    agent_names: dict[str, str] | None = None,
+) -> dict:
+    display_names = get_agent_display_names(agent_names)
     session.history.append({"sender": "User", "text": message})
 
-    responders = await decide_who_responds(message, session)
+    responders = await decide_who_responds(message, session, display_names)
     new_messages = []
 
     for name in responders:
-        reply = await get_agent_reply(name, message, session)
-        session.history.append({"sender": name, "text": reply})
-        new_messages.append({"sender": name, "text": reply})
+        reply = await get_agent_reply(name, message, session, display_names)
+        sender = display_names[name]
+        session.history.append({"agent_id": name, "sender": sender, "text": reply})
+        new_messages.append({"agent_id": name, "sender": sender, "text": reply})
 
     return {
         "new_messages": new_messages,

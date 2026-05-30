@@ -1,11 +1,17 @@
 import { useEffect, useRef } from 'react'
-import { AGENTS } from '../lib/api'
+import { AGENTS, getInitials } from '../lib/api'
 
 function nowStr() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function Avatar({ name, ghost }) {
+function getAgentId(msg) {
+  if (typeof msg === 'string') return msg
+  if (msg.agent_id) return msg.agent_id
+  return Object.keys(AGENTS).find(id => id === msg.sender) ?? 'Maya'
+}
+
+function Avatar({ name, agentId, agentNames, ghost }) {
   if (ghost) return <div style={{ width: 26, height: 26, flexShrink: 0, visibility: 'hidden' }} />
   if (name === 'You') {
     return (
@@ -17,14 +23,15 @@ function Avatar({ name, ghost }) {
       }}>Y</div>
     )
   }
-  const a = AGENTS[name]
+  const safeAgentId = AGENTS[agentId] ? agentId : 'Maya'
+  const a = AGENTS[safeAgentId]
   return (
     <div style={{
       width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
       background: `var(--${a.cls}-bg)`, color: `var(--${a.cls}-text)`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 11, fontWeight: 500,
-    }}>{a.initials}</div>
+    }}>{getInitials(agentNames[safeAgentId] ?? name)}</div>
   )
 }
 
@@ -45,15 +52,18 @@ function UserMessage({ msg }) {
   )
 }
 
-function AgentMessage({ msg }) {
-  const a = AGENTS[msg.sender]
+function AgentMessage({ msg, agentNames }) {
+  const agentId = getAgentId(msg)
+  const safeAgentId = AGENTS[agentId] ? agentId : 'Maya'
+  const a = AGENTS[safeAgentId]
+  const displayName = agentNames[safeAgentId] ?? msg.sender
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 500, marginLeft: 33, marginBottom: 3, color: `var(--${a.cls}-text)` }}>
-        {msg.sender}
+        {displayName}
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
-        <Avatar name={msg.sender} />
+        <Avatar name={displayName} agentId={safeAgentId} agentNames={agentNames} />
         <div style={{
           maxWidth: '72%', padding: '9px 13px',
           background: 'var(--bg-primary)',
@@ -68,8 +78,10 @@ function AgentMessage({ msg }) {
   )
 }
 
-function TypingIndicator({ name }) {
-  const a = AGENTS[name]
+function TypingIndicator({ agentId, agentNames }) {
+  const safeAgentId = AGENTS[agentId] ? agentId : 'Maya'
+  const a = AGENTS[safeAgentId]
+  const name = agentNames[safeAgentId]
   const dotStyle = (delay) => ({
     width: 5, height: 5, borderRadius: '50%',
     background: 'var(--text-tertiary)',
@@ -83,7 +95,7 @@ function TypingIndicator({ name }) {
         background: `var(--${a.cls}-bg)`, color: `var(--${a.cls}-text)`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 11, fontWeight: 500, flexShrink: 0,
-      }}>{a.initials}</div>
+      }}>{getInitials(name)}</div>
       <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{name}</span>
       <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
         <span style={dotStyle('0s')} />
@@ -94,7 +106,7 @@ function TypingIndicator({ name }) {
   )
 }
 
-export default function MessageList({ messages, typing }) {
+export default function MessageList({ messages, typing, agentNames }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -124,10 +136,10 @@ export default function MessageList({ messages, typing }) {
       {messages.map(msg =>
         msg.type === 'user'
           ? <UserMessage key={msg.id} msg={msg} />
-          : <AgentMessage key={msg.id} msg={msg} />
+          : <AgentMessage key={msg.id} msg={msg} agentNames={agentNames} />
       )}
 
-      {typing.map(name => <TypingIndicator key={name} name={name} />)}
+      {typing.map(agentId => <TypingIndicator key={agentId} agentId={agentId} agentNames={agentNames} />)}
 
       <div ref={bottomRef} />
     </div>
